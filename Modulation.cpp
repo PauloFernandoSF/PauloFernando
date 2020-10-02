@@ -456,13 +456,13 @@ float Modulation::getXTLimit(int M, double bitRate,double outage,double ber){
         if(float(outage) == float(1*(pow (10.0 ,-5))) && float(ber) == float(3.8*pow(10,-3))){
             switch (M) {
                 case 2: //QAM-4
-                    return -22.20;
+                    return -22.2;//-22.2
                     break;
                 case 3: //QAM - 8
-                    return -26.27;
+                    return -26.67; //-26.27
                     break;
                 case 4: //QAM-16
-                    return -28.86;
+                    return -28.86;  //-28.86
                     break;
                 default:
                     cout<<"Unknown Modulation Format";
@@ -516,11 +516,10 @@ A = double(4.5*pow(10,-5));
 //
 h = double((2*pow(k,2)*R)/(beta*A));
 //DEBUG
-//if((int*)assignment == 0x69ac50){
+//if((int*)assignment == (int*)0x6b53a0){
 //    int a = 0;
+//    Topology::printRouteState(assignment->getTrialRoute(route),assignment->getNumSlotsMatrix(route,modulationPos));
 //}
-//     Topology::printRouteState(assignment->getTrialRoute(route),assignment->getNumSlotsMatrix(route,modulationPos));
-
     for(int c = 0;c < numHops;c++){
         ori = assignment->getTrialRoute(route)->getNode(c);de = assignment->getTrialRoute(route)->getNode(c + 1);
         fiber = Topology::getFiber(ori,de);
@@ -678,11 +677,11 @@ Link* link;
 //coeficiente de acoplamento
 k =  float(0.012);//(0.012); //0.00584;
 //constante de propagação
-beta = pow(10,7);
+beta = pow(10,7);//7
 //raio de curvatura
 R = double(0.01);
 //core pitch
-A = double(4.5*pow(10,-5));
+A = double(4.5*pow(10,-5));//4,5
 //
 h = double((2*pow(k,2)*R)/(beta*A));
 
@@ -690,33 +689,43 @@ h = double((2*pow(k,2)*R)/(beta*A));
         ori = route->getNode(c);de = route->getNode(c + 1);
         fiber = Topology::getFiber(ori,de);
         link = Topology::getLink(ori,de);
-        L = link->getLength();
+        L = link->getLength()*200;
         //Variation of adj cores
         for(int adj = 0;adj < fiber->getFiberCore(nucleo)->getNumAdjCores();adj++){
-            //Topology::printRouteState(assignment->getTrialRoute(route),assignment->getNumSlotsMatrix(route,modulationPos));
             adjCoreIndex = fiber->getFiberCore(nucleo)->getAdjCoreIndex(adj);
             adjCore = fiber->getFiberCore(adjCoreIndex);
             //índice de interferencia-Verificar quantas conexões se sobrepoem
             for(int slot = iniSlot;slot < (iniSlot + numSlots - 1);slot++){
                     //Vetor com o XT dos slots da requisição
-                    reqXt.push_back(0);
-                    slotVecReq.push_back(Def::MAX_INT);
-                    fiberVecReq.push_back(fiber);
-                    index = reqXt.size() - 1;
+                    if(adj == 0){
+                        reqXt.push_back(0);
+                        slotVecReq.push_back(slot);
+                        fiberVecReq.push_back(fiber);
+                        index = reqXt.size() - 1;
+                    }
                     //Condição para impedir que a banda de guarda seja contada
                     if(fiber->getCoreOccupation(slot,adjCore) && fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot)->getLastSlot() != slot){
+                            //Topology::printRouteState(route,numSlots,nucleo,s);
                             interfere = true;
-                            float xt = (1 - exp(-2*h*L))/(1 + exp(-2*h*L));
-                            if(fiber->getFiberCore(adjCoreIndex)->getSlotXT(slot) != 0)
-                                xt += fiber->getFiberCore(adjCoreIndex)->getSlotXT(slot);
-                            xt = General::linearTodB(xt);
+                            float xt = (1 - exp(-2*h*L))/(1 + exp(-2*h*L)),xt_adj;
+                            //VERIFICAR XT DAS CONEXÕES ADJ
+                            if(fiber->getFiberCore(adjCoreIndex)->getSlotXT(slot) != 0){
+                                xt_adj = xt + fiber->getFiberCore(adjCoreIndex)->getSlotXT(slot);
+                            }
+                            else
+                                xt_adj = xt;
+                            xt_adj = General::linearTodB(xt_adj);
                             //Debug
-                            float a = fiber->getFiberCore(adjCoreIndex)->getSlotXT(slot),b = fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot)->getXTLimit();
+                            Assignment* u;
+                            float o = fiber->getFiberCore(adjCoreIndex)->getSlotXT(slot),b = fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot)->getXTLimit();
+                            if(o < 0){
+                                u = fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot);
+                            }
                             //XTmed += xt;
                             //Possível alocação faz o XT da conexão interferida passar do limite?
-                            if(xt > fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot)->getXTLimit()){
+                            //VERIFICAR ATRIBUIÇÃO DE XT DE SLOTS ADJ!!!!!!!!!!!!!!!!!!!!!!!!!
+                            if(xt_adj > fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot)->getXTLimit()){
                                 //Sim,retorna FALSE
-                                //Topology::printRouteState(assignment->getTrialRoute(route),assignment->getNumSlotsMatrix(route,modulationPos));
                                 return false;
                             }
                             else{
@@ -724,19 +733,26 @@ h = double((2*pow(k,2)*R)/(beta*A));
                                 fiberVec.push_back(fiber);
                                 coreVec.push_back(adjCore);
                                 slotVec.push_back(slot);
-                                vecXt.push_back(General::dBtoLinear(xt));
+                                vecXt.push_back(General::dBtoLinear(xt_adj));
                                 //Atualiza o XT da possível alocação,verificar se o slot já foi adicionado
                                 bool existe = false;
-                                for(int a = 0;a < slotVecReq.size() - 1;a++){
+                                for(int a = 0;a < slotVecReq.size();a++){
                                     if(slotVecReq.at(a) == slot && fiberVecReq.at(a) == fiber){
-                                        reqXt.at(a) += General::dBtoLinear(xt);
+                                        reqXt.at(a) += xt;
+                                        float p = General::linearTodB(reqXt.at(a)), m = Modulation::getXTLimit(modulacao,assignment->getBitRate(),Modulation::getOutagePb(),Traffic::getBER());
+                                        //Caso o Xt da possível alocação esteja fora do limite, a alocação não é possível para esta modulação
+                                        if(General::linearTodB(reqXt.at(a))  > Modulation::getXTLimit(modulacao,assignment->getBitRate(),Modulation::getOutagePb(),Traffic::getBER()))
+                                            return false;
                                         existe = true;
                                         break;
                                     }
                                 }
                                 if(!existe){
+                                    reqXt.at(index) = xt;
+                                    //Caso o Xt da possível alocação esteja fora do limite, a alocação não é possível para esta modulação
+                                    if(General::linearTodB(reqXt.at(index))  > Modulation::getXTLimit(modulacao,assignment->getBitRate(),Modulation::getOutagePb(),Traffic::getBER()))
+                                        return false;
                                     slotVecReq.at(index) = slot;
-                                    reqXt.at(index) = General::dBtoLinear(xt);
                                 }
                             }
 
@@ -745,8 +761,8 @@ h = double((2*pow(k,2)*R)/(beta*A));
 
         }
     }
-    //Verificar se XTTotal == 0 e retornar true
     if(!interfere){
+        //Topology::printRouteState(route,numSlots,nucleo,s);
         for(int c = 0;c < numHops;c++){
             for(int d = iniSlot;d <  (iniSlot + numSlots - 1);d++){
                 int ori = route->getNode(c);de = route->getNode(c + 1);
@@ -760,28 +776,31 @@ h = double((2*pow(k,2)*R)/(beta*A));
     }
     //Caso chegue aqui, houve interferência e nenhum slot ultrapassou seu limite de XT,seta o XT real de todos os slots envolvidos
     //Atualiza o XT dos slots interferentes
-    if((int*)assignment == (int*)0x69ac50){
-        int a = 0;
-        Topology::printRouteState(route,numSlots,nucleo,s);
-    }
-    //Topology::printRouteState(route,numSlots,nucleo,iniSlot);
+    //Topology::printRouteState(route,numSlots,nucleo,s);
     for(int num = 0;num <= slotVec.size() - 1;num++){
-        //Fiber* f = fiberVec.at(a);
         Core*  c  = coreVec.at(num);
         int    e = slotVec.at(num),b = c->getSlotAssignment(e)->getLastSlot();
-        float  x = vecXt.at(num);
+        float  x = vecXt.at(num),l;
+        if(x <= 0){
+            int t = 0;
+        }
         c->setSlotXT(e,x);
         //Topology::xtMed = Topology::xtMed + x;
     }
     //Atualiza o XT dos slots da própria requisição
     int cont = 0;
-
+    //Topology::printRouteState(route,numSlots,nucleo,s);
     for(int num = 0;num < numHops;num++){
             for(int f = iniSlot;f < (iniSlot + numSlots - 1);f++){
                 int ori = route->getNode(num);de = route->getNode(num + 1);
                 Fiber* fiber = Topology::getFiber(ori,de);
+                float y;
+                y = reqXt.at(cont);
+                if(y <= 0){
+                    int r = 0;
+                }
+                y = General::linearTodB(y);
                 fiber->getFiberCore(nucleo)->setSlotXT(f,reqXt.at(cont));
-                float x = fiber->getFiberCore(4)->getSlotXT(f);
                 //Topology::xtMed = Topology::xtMed + reqXt.at(cont);
                 cont++;
             }
@@ -899,6 +918,7 @@ h = double((2*pow(k,2)*R)/(beta*A));
         int    s = slotVec.at(num);
         float  x = vecXt.at(num);
         c->setSlotXT(s,x);
+
         //Topology::xtMed = Topology::xtMed + x;
     }
     //Atualiza o XT dos slots da própria requisição

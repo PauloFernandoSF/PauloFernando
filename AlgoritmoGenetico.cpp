@@ -4,12 +4,12 @@
 
 // parâmetros do algoritmo genético
 int AlgoritmoGenetico::tam_genes = 6; 		// quantidade de genes - numero de nucleos
-int AlgoritmoGenetico::tam_pop = 50; 		// quantidade de indivíduos da população
+int AlgoritmoGenetico::tam_pop = 100; 		// quantidade de indivíduos da população
 int AlgoritmoGenetico::geracoes = 50;     // quantidade de gerações
 int AlgoritmoGenetico::num_tam_req = 3; 	//quantidade de requisições de tamanhos diferentes
 int AlgoritmoGenetico::rand_sel = 3;        //número de indivíduos selecionados aleatoreamente
-int AlgoritmoGenetico::mutacao_prob = 50;    //probabilidade de mutação dos genes
-int AlgoritmoGenetico::crossover_prob = 40;
+int AlgoritmoGenetico::mutacao_prob = 15;    //probabilidade de mutação dos genes
+int AlgoritmoGenetico::crossover_prob = 90;
 int AlgoritmoGenetico::ressim = 3;
 int AlgoritmoGenetico::ressim_indiv = 3;
 long double Melhor_Pb = 0,Pior_Pb = 0;
@@ -302,7 +302,10 @@ else
 }
 
 void AlgoritmoGenetico::InicializaPopulacao(){
+	//Aleatório
 	srand(time(NULL));
+	//Repetido
+	srand(1);
 	int a = num_tam_req;
 	long double fit,v;
     int num;

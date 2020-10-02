@@ -570,7 +570,7 @@ void Heuristics::FirstFitAG(Assignment*  assignment,int ElementPosition,int veto
             individuo = AlgoritmoGenetico::GetPopulationAuxElement(ElementPosition);
     if(vetor == 0)
             individuo = AlgoritmoGenetico::GetPopulationElement(ElementPosition);
-    //5
+    //
     if(numSlotsReq == 12){
         for(int a = 0;a < Topology::getNumCores();a++){
             ordem.push_back(NULL);
@@ -578,7 +578,7 @@ void Heuristics::FirstFitAG(Assignment*  assignment,int ElementPosition,int veto
         }
         modulacao = 4;
     }
-    //6
+    //
     if(numSlotsReq == 15){
         for(int a = 0;a < Topology::getNumCores();a++){
             ordem.push_back(NULL);
@@ -586,7 +586,7 @@ void Heuristics::FirstFitAG(Assignment*  assignment,int ElementPosition,int veto
         }
         modulacao = 3;
     }
-    //9
+    //
     if(numSlotsReq == 23){
         for(int a = 0;a < Topology::getNumCores();a++){
             ordem.push_back(NULL);
@@ -612,19 +612,24 @@ void Heuristics::FirstFitAG(Assignment*  assignment,int ElementPosition,int veto
                         flag = true;
                         break;
                     }
+                    else
+                        int a =0;
             }
         }
         if(flag)
             break;
     }
-    if(!flag && modulacao == 2){
+    //Nao tem capacidade e no último formato de modulação
+    if(!cap){
         //Requisição bloqueada
-        //Bloqueio por XT
-        if(cap)
+        Topology::resourceBloq++;
+    }
+    else{
+        if(cap && !flag && modulacao == 2)
             Topology::xtBloq++;
-        //Bloqueio por Recurso
-        else
-            Topology::resourceBloq++;
+        else{
+            int y = 0;
+        }
     }
 }
 

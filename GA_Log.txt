@@ -1,0 +1,10 @@
+Generations:    50
+Population:     100
+Requisitions:   3
+Cores(genes):   6
+Mutation:       15
+CrossOver:      90
+Random:         3
+Slos/Core:      64
+Resim_Times:    3
+Resim_Indiv:    3

@@ -78,7 +78,7 @@ public:
     static bool checkSlotsCore_CS(const Route *route, int si, int sf,Assignment*,int core_id);
     static bool checkSlotsCore_CS(const Route *route, int si, int sf,Assignment*, vector<unsigned int>*);
     static int  checkSlotsCore_1(const Route *route, int si, int sf,Assignment*,int core_id);
-    static bool checkSlotsCoreAG(const Route *route, int si, int sf,int coreID);
+    static bool checkSlotsCoreAG(Route *route, int si, int sf,int coreID);
     static bool checkPossibleSet(Route* route,int si, int sf,Assignment*assignment);
     static bool checkCoreSet(Route* route,int si,int sf,int core,int hop);
     static bool checkSlotNumberDisp(const Route *route, int numSlots); //Check whether there are numSlots contiguous slots available in the route

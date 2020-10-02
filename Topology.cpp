@@ -385,9 +385,18 @@ void Topology::releaseConnection(Connection* connection){
     int L_or, L_de;Link *link;
     Route *route = connection->getAssignment()->getRoute();
     int core;Fiber* fiber;
-    //release all slots used for the Connection
-    Topology::printRouteState(route,connection->getAssignment()->getNumSlots(),connection->getAssignment()->getCoreId(),connection->getFirstSlot());
-
+            //Debug
+            /*Topology::printRouteState(route,connection->getAssignment()->getNumSlots(),connection->getAssignment()->getCoreId(),connection->getFirstSlot());
+            int ori = route->getNode(0);int de = route->getNode(1);
+            Fiber* f = Topology::getFiber(ori,de);
+            float x = f->getFiberCore(0)->getSlotXT(0);
+            x = f->getFiberCore(1)->getSlotXT(0);
+            x = f->getFiberCore(2)->getSlotXT(0);
+            x = f->getFiberCore(3)->getSlotXT(0);
+            x = f->getFiberCore(4)->getSlotXT(0);
+            x = f->getFiberCore(5)->getSlotXT(0);
+            x = 0;*/
+            //
     updateAdjConnXT(connection);
     for(int c = 0; c < route->getNumHops(); c++){
        L_or = route->getNode(c);
@@ -397,18 +406,14 @@ void Topology::releaseConnection(Connection* connection){
        //Release for Core Switch
        if(coreSwitch){
             core = connection->getAssignment()->getHopCoreId(c);
-            //for(int s = connection->getFirstSlot(); s <= connection->getLastSlot(); s++){
             fiber->getFiberCore(core)->releaseSlots(connection->getFirstSlot(),connection->getAssignment());
-            //}
        }
        //Release without Core Switch
        else{
-            //UPDATE XT OF INTERFERING CONNECTIONS
             core = connection->getAssignment()->getCoreId();
             fiber->getFiberCore(core)->releaseSlots(connection->getFirstSlot(),connection->getAssignment());
        }
     }
-    //Topology::printRouteState(route,connection->getAssignment()->getNumSlots(),connection->getAssignment()->getCoreId(),connection->getFirstSlot());
 
 }
 
@@ -423,21 +428,22 @@ Link* link;
 double R,A,h;
 float k,beta;
 //coeficiente de acoplamento
-k =  float(0.012); //0.00584;
+k =  float(0.012); //0.00584;//0.012
 //constante de propagação
-beta = pow(10,7);
+beta = pow(10,7);//7
 //raio de curvatura
-R = double(0.01);
+R = double(0.01);//0.01
 //core pitch
 A = double(4.5*pow(10,-5));
 //
 h = double((2*pow(k,2)*R)/(beta*A));
+
 //Topology::printRouteState(route,numSlots,nucleo,iniSlot);
     for(int c = 0;c < numHops;c++){
         ori = route->getNode(c);de = route->getNode(c + 1);
         fiber = Topology::getFiber(ori,de);
         link = Topology::getLink(ori,de);
-        L = link->getLength();
+        L = link->getLength()*200;
         for(int adj = 0;adj < fiber->getFiberCore(nucleo)->getNumAdjCores();adj++){
             //Topology::printRouteState(route,numSlots,nucleo,iniSlot);
             adjCoreIndex = fiber->getFiberCore(nucleo)->getAdjCoreIndex(adj);
@@ -446,11 +452,22 @@ h = double((2*pow(k,2)*R)/(beta*A));
             for(int slot = iniSlot;slot < (iniSlot + numSlots - 1);slot++){
                 if(fiber->getCoreOccupation(slot,adjCore) && fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot)->getLastSlot() != slot){
                     //Slot interferente,reduzir XT
-                    float xt = adjCore->getSlotXT(slot);
-                    xt = fiber->getFiberCore(nucleo)->getSlotXT(slot);
-                    if(xt > 0){
-                        xt = fiber->getFiberCore(adjCoreIndex)->getSlotXT(slot) - (1 - exp(-2*h*L))/(1 + exp(-2*h*L));
-                        fiber->getFiberCore(adjCoreIndex)->setSlotXT(slot,xt);
+                    //Converter float para int para subtrair e depois retornar
+                    //if(fiber->getFiberCore(adjCoreIndex)->getSlotAssignment(slot) == (Assignment*)0x6b0de0){
+                    //Topology::printRouteState(route,numSlots,nucleo,iniSlot);
+                    //}
+                    float adjXT = adjCore->getSlotXT(slot),xt = (1 - exp(-2*h*L))/(1 + exp(-2*h*L)),subXt;
+                    adjXT = (int)(round(adjXT*10000000000));
+                    xt =    (int)(round(xt*10000000000));
+                    subXt = (float)(adjXT - xt);
+                    if(subXt < 0){
+                        int y = 0;
+                    }
+                    if(subXt <= 0)
+                        fiber->getFiberCore(adjCoreIndex)->setSlotXT(slot,0);
+                    else{
+                        subXt = subXt/10000000000;
+                        fiber->getFiberCore(adjCoreIndex)->setSlotXT(slot,subXt);
                     }
                 }
             }
@@ -619,10 +636,11 @@ Fiber *fiber;
     return true;
 }
 // ------------------------------------------------------ //
-bool Topology::checkSlotsCoreAG(const Route *route, int si, int sf,int coreID){ //Checa se um intervalo de slots está disponível na rota
+bool Topology::checkSlotsCoreAG(Route *route, int si, int sf,int coreID){ //Checa se um intervalo de slots está disponível na rota
     int L_or, L_de, x = route->getNumHops();
     bool flag = false;
     Fiber *fiber;
+    //Topology::printRouteState(route,sf - si + 1,coreID,si);
     //procura no mesmo core e slots nos outros hops da rota
     for(unsigned int c = 0; c < route->getNumHops(); c++){
            L_or = route->getNode(c);L_de = route->getNode(c+1);

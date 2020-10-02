@@ -213,7 +213,6 @@ void Kernel::ConnectionRequest(Event* evt,int ElementPosition,int vetor){
             }
         }
     }
-    //No Physical Layer
     else{
         if(RSA(assignment,ElementPosition,vetor)){
             Def::numReq_Acc++;
@@ -799,6 +798,8 @@ int polarization = Traffic::getPolarization();
         //Roteamento:
         Heuristics::Routing(assignment);//Fill assignment with the set of routes to be tryed
         bool success = false;
+        //Variaveis para verificar se houve bloqueio por recurso e parar a rotina
+        int blockAntXt = Topology::xtBloq, blockAntRes = Topology::resourceBloq;
         if(assignment->isThereTrialRoute()){ //Routing was successful
             do{
                 route = assignment->popTrialRoute();
@@ -818,6 +819,11 @@ int polarization = Traffic::getPolarization();
                             ConnectionSetup(assignment);
                             break;
 
+                        }
+                        else{
+                            //Ocorreu bloqueio por recurso
+                            if(Topology::resourceBloq == blockAntRes + 1)
+                                break;
                         }
                     }
                     if(!success){
